@@ -22,7 +22,8 @@ class SavingSeeder extends Seeder
         );
 
         Saving::factory()->for($user)->fixedDeposit()->create([
-            'account_number' => 'FD100200300',
+            'account_number' => '100200300',
+            'bank_name' => 'HDFC Bank',
             'interest_rate' => '7.10',
             'amount' => '100000.00',
             'start_date' => '2026-01-01',
@@ -31,7 +32,8 @@ class SavingSeeder extends Seeder
         ]);
 
         Saving::factory()->for($user)->recurringDeposit()->create([
-            'account_number' => 'RD400500600',
+            'account_number' => '400500600',
+            'bank_name' => 'ICICI Bank',
             'interest_rate' => '6.50',
             'amount' => '2000.00',
             'start_date' => '2026-02-01',

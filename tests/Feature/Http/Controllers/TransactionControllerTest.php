@@ -30,7 +30,7 @@ class TransactionControllerTest extends TestCase
             ->post(route('transactions.store'), $this->payload([
                 'user_id' => $other->id,
             ]))
-            ->assertRedirectToRoute('dashboard');
+            ->assertRedirectToRoute('transactions.index');
 
         $transaction = Transaction::query()->whereBelongsTo($user)->sole();
 
@@ -49,7 +49,7 @@ class TransactionControllerTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->from(route('dashboard'))
+            ->from(route('transactions.index'))
             ->post(route('transactions.store'), [])
             ->assertInvalid([
                 'type' => 'The type field is required.',
@@ -67,7 +67,7 @@ class TransactionControllerTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->from(route('dashboard'))
+            ->from(route('transactions.index'))
             ->post(route('transactions.store'), $this->payload($overrides))
             ->assertInvalid([
                 $field => $message,
@@ -86,14 +86,14 @@ class TransactionControllerTest extends TestCase
         $this->assertModelExists($transaction);
     }
 
-    public function test_owner_deletes_a_transaction_and_returns_to_the_dashboard(): void
+    public function test_owner_deletes_a_transaction_and_returns_to_the_list(): void
     {
         $user = User::factory()->create();
         $transaction = Transaction::factory()->for($user)->create();
 
         $this->actingAs($user)
             ->delete(route('transactions.destroy', $transaction))
-            ->assertRedirectToRoute('dashboard');
+            ->assertRedirectToRoute('transactions.index');
 
         $this->assertModelMissing($transaction);
     }

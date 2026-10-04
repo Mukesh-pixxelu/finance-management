@@ -11,7 +11,7 @@ enum SavingType: string
     public function label(): string
     {
         return match ($this) {
-            self::SavingsAccount => 'Savings account',
+            self::SavingsAccount => 'Savings Account',
             self::FixedDeposit => 'FD',
             self::RecurringDeposit => 'RD',
         };
@@ -20,7 +20,7 @@ enum SavingType: string
     public function amountLabel(): string
     {
         return match ($this) {
-            self::SavingsAccount => 'Balance',
+            self::SavingsAccount => 'balance',
             self::FixedDeposit => 'Principal',
             self::RecurringDeposit => 'Monthly installment',
         };

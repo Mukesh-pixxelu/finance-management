@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'type',
     'account_number',
+    'bank_name',
     'interest_rate',
     'amount',
     'start_date',
@@ -43,12 +44,8 @@ class Saving extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function receivableAtMaturity(): ?string
+    public function receivableAtMaturity(): string
     {
-        if ($this->type === SavingType::RecurringDeposit) {
-            return null;
-        }
-
         return bcadd($this->amount, $this->interest_earned, 2);
     }
 }

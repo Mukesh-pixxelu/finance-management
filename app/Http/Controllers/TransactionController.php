@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\TransactionType;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -11,6 +12,20 @@ use Illuminate\Validation\Rule;
 
 class TransactionController extends Controller
 {
+    public function index(Request $request): View
+    {
+        $user = $request->user();
+        $summary = $user->ledgerSummary();
+
+        return view('transactions.index', [
+            'transactions' => $user->transactions()
+                ->orderByDesc('occurred_on')
+                ->orderByDesc('id')
+                ->get(),
+            'summary' => $summary,
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -27,7 +42,7 @@ class TransactionController extends Controller
             'occurred_on' => $data['occurred_on'],
         ]);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('transactions.index');
     }
 
     public function destroy(Transaction $transaction): RedirectResponse
@@ -36,6 +51,6 @@ class TransactionController extends Controller
 
         $transaction->delete();
 
-        return redirect()->route('dashboard');
+        return redirect()->route('transactions.index');
     }
 }

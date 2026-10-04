@@ -8,7 +8,7 @@
     @include('partials.header')
 
     <div class="account-layout">
-    <h1><x-icon name="user" class="icon-lg" /> Account</h1>
+    <h1><x-icon name="user" class="icon-lg" /> Profile</h1>
     <p class="lede">Update your profile or password.</p>
 
     <section class="card">

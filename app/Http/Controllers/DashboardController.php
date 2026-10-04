@@ -2,48 +2,89 @@
 
 namespace App\Http\Controllers;
 
+use App\Bank;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $user = $request->user();
-
-        $summary = $user->ledgerSummary();
+        $banks = $this->bankAssets($request->user());
+        $totalAssets = $banks->reduce(
+            fn (string $carry, array $bank) => bcadd($carry, $bank['total'], 2),
+            '0.00',
+        );
 
         return view('dashboard', [
-            'transactions' => $user->transactions()
-                ->orderByDesc('occurred_on')
-                ->orderByDesc('id')
-                ->get(),
-            'summary' => $summary,
-            'chart' => $this->chart($summary['income'], $summary['expense']),
+            'totalAssets' => $totalAssets,
+            'banks' => $banks,
+            'pieStyle' => $this->pieStyle($banks),
         ]);
     }
 
     /**
-     * @return array{empty: bool, income: string, expense: string}
+     * @return Collection<int, array{name: string, slug: string, total: string, count: int, percent: string, color: string}>
      */
-    private function chart(string $income, string $expense): array
+    private function bankAssets(User $user): Collection
     {
-        $total = bcadd($income, $expense, 2);
+        $colors = Bank::chartColors();
 
-        if (bccomp($total, '0', 2) !== 1) {
+        $grouped = $user->savings()
+            ->selectRaw('bank_name, sum(amount) as total, count(*) as accounts')
+            ->groupBy('bank_name')
+            ->orderByDesc('total')
+            ->get()
+            ->filter(fn (object $row) => filled($row->bank_name));
+
+        $grandTotal = $grouped->reduce(
+            fn (string $carry, object $row) => bcadd($carry, (string) $row->total, 2),
+            '0.00',
+        );
+
+        return $grouped->values()->map(function (object $row, int $index) use ($colors, $grandTotal) {
+            $name = (string) $row->bank_name;
+            $slug = Bank::slug($name);
+            $total = bcadd((string) $row->total, '0', 2);
+            $percent = bccomp($grandTotal, '0', 2) === 1
+                ? number_format(round(((float) $total / (float) $grandTotal) * 100, 1), 1, '.', '')
+                : '0.0';
+
             return [
-                'empty' => true,
-                'income' => '0.0',
-                'expense' => '0.0',
+                'name' => $name,
+                'slug' => $slug !== '' ? $slug : 'bank-'.$index,
+                'total' => $total,
+                'count' => (int) $row->accounts,
+                'percent' => $percent,
+                'color' => $colors[$index % count($colors)],
             ];
+        });
+    }
+
+    /**
+     * @param  Collection<int, array{percent: string, color: string}>  $banks
+     */
+    private function pieStyle(Collection $banks): string
+    {
+        if ($banks->isEmpty()) {
+            return '';
         }
 
-        $incomeShare = number_format(round((float) $income / (float) $total * 100, 1), 1, '.', '');
+        $cursor = 0.0;
+        $stops = [];
 
-        return [
-            'empty' => false,
-            'income' => $incomeShare,
-            'expense' => number_format(round(100 - (float) $incomeShare, 1), 1, '.', ''),
-        ];
+        foreach ($banks as $bank) {
+            $end = min(100, round($cursor + (float) $bank['percent'], 2));
+            $stops[] = sprintf('%s %.2f%% %.2f%%', $bank['color'], $cursor, $end);
+            $cursor = $end;
+        }
+
+        if ($cursor < 100) {
+            $stops[] = sprintf('#e2e8f0 %.2f%% 100%%', $cursor);
+        }
+
+        return 'conic-gradient('.implode(', ', $stops).')';
     }
 }

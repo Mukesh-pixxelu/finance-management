@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Http\Controllers;
 
-use App\Models\Transaction;
+use App\Models\Saving;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
@@ -17,80 +17,48 @@ class DashboardControllerTest extends TestCase
             ->assertRedirectToRoute('login');
     }
 
-    public function test_dashboard_shows_zero_balance_when_there_are_no_transactions(): void
+    public function test_dashboard_shows_empty_assets_state(): void
     {
-        $this->travelTo('2026-10-02');
-
         $this->actingAs(User::factory()->create())
             ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Total assets')
             ->assertSee('0.00')
-            ->assertSee('No transactions yet.')
-            ->assertSee('Add a transaction to see this chart.')
-            ->assertSee('2026-10-02');
+            ->assertSee('No bank assets yet');
     }
 
-    public function test_dashboard_shows_balance_and_hides_another_users_transactions(): void
+    public function test_dashboard_shows_bank_cards_and_percentages(): void
     {
         $user = User::factory()->create();
 
-        Transaction::factory()->for($user)->income()->create([
-            'amount' => '100.50',
-            'description' => 'Salary',
-            'occurred_on' => '2026-10-01',
+        Saving::factory()->for($user)->create([
+            'bank_name' => 'HDFC Bank',
+            'amount' => '75000.00',
         ]);
-        Transaction::factory()->for($user)->expense()->create([
-            'amount' => '40.25',
-            'description' => 'Lunch',
-            'occurred_on' => '2026-10-02',
+        Saving::factory()->for($user)->create([
+            'bank_name' => 'HDFC Bank',
+            'amount' => '25000.00',
+            'account_number' => '111222333',
         ]);
-        Transaction::factory()->income()->create([
-            'description' => 'Secret bonus',
-            'amount' => '999.00',
+        Saving::factory()->for($user)->create([
+            'bank_name' => 'ICICI Bank',
+            'amount' => '100000.00',
+            'account_number' => '444555666',
+        ]);
+        Saving::factory()->create([
+            'bank_name' => 'Yes Bank',
+            'amount' => '999999.00',
         ]);
 
         $this->actingAs($user)
             ->get(route('dashboard'))
-            ->assertSee('60.25')
-            ->assertSee('100.50')
-            ->assertSee('40.25')
-            ->assertSeeInOrder(['71.4%', '28.6%'])
-            ->assertSeeInOrder(['Lunch', 'Salary'])
-            ->assertDontSee('Secret bonus');
-    }
-
-    public function test_dashboard_shows_a_negative_balance(): void
-    {
-        $user = User::factory()->create();
-
-        Transaction::factory()->for($user)->income()->create([
-            'amount' => '10.00',
-            'description' => 'Gift',
-            'occurred_on' => '2026-10-01',
-        ]);
-        Transaction::factory()->for($user)->expense()->create([
-            'amount' => '25.00',
-            'description' => 'Rent',
-            'occurred_on' => '2026-10-02',
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('dashboard'))
-            ->assertSee('-15.00')
-            ->assertSeeInOrder(['28.6%', '71.4%']);
-    }
-
-    public function test_dashboard_escapes_the_transaction_description(): void
-    {
-        $user = User::factory()->create();
-        $description = "<script>alert('xss')</script>";
-
-        Transaction::factory()->for($user)->create([
-            'description' => $description,
-        ]);
-
-        $this->actingAs($user)
-            ->get(route('dashboard'))
-            ->assertSee($description)
-            ->assertDontSee($description, false);
+            ->assertOk()
+            ->assertSee('2,00,000.00')
+            ->assertSee('HDFC Bank')
+            ->assertSee('ICICI Bank')
+            ->assertSee('50.0%')
+            ->assertSee('2 accounts')
+            ->assertSee('1 account')
+            ->assertDontSee('Yes Bank');
     }
 }

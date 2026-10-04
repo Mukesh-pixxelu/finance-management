@@ -23,6 +23,7 @@ class SavingFactory extends Factory
             'user_id' => User::factory(),
             'type' => SavingType::FixedDeposit,
             'account_number' => fake()->unique()->numerify('############'),
+            'bank_name' => fake()->randomElement(\App\Bank::options()),
             'interest_rate' => '7.10',
             'amount' => '100000.00',
             'start_date' => '2026-01-01',

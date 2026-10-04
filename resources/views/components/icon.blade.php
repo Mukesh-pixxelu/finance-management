@@ -8,6 +8,7 @@
             <path d="M16.5 14.5h.01" />
             @break
         @case('income')
+        @case('arrow-up')
             <path d="M12 19V5" />
             <path d="m6 11 6-6 6 6" />
             @break
@@ -49,6 +50,10 @@
             <path d="M4 7h16" />
             <path d="M9 7V4h6v3" />
             <path d="M7 7l1 13h8l1-13" />
+            @break
+        @case('pencil')
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z" />
             @break
         @case('plus')
             <path d="M12 5v14" />

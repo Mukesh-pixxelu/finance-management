@@ -1,8 +1,12 @@
+@php
+    use App\Support\Money;
+@endphp
+
 @extends('layouts.app')
 
 @section('title', 'Savings')
 
-@section('shell', 'shell-wide')
+@section('shell', 'shell-savings')
 
 @section('content')
     @include('partials.header')
@@ -10,69 +14,28 @@
     <h1><x-icon name="piggy" class="icon-lg" /> Savings</h1>
     <p class="lede">Savings accounts, fixed deposits, and recurring deposits.</p>
 
-    <section class="card">
+    <section class="card card-form">
         <h2><x-icon name="plus" /> Add a saving</h2>
 
         <form method="POST" action="{{ route('savings.store') }}">
             @csrf
-
-            <div class="fields">
-                <div>
-                    <label for="type">Type</label>
-                    <select id="type" name="type" required>
-                        <option value="savings_account" @selected(old('type', 'savings_account') === 'savings_account')>Savings account</option>
-                        <option value="fd" @selected(old('type') === 'fd')>FD</option>
-                        <option value="rd" @selected(old('type') === 'rd')>RD</option>
-                    </select>
-                    @error('type') <div class="error">{{ $message }}</div> @enderror
-                </div>
-
-                <div>
-                    <label for="account_number">Account number</label>
-                    <input id="account_number" name="account_number" value="{{ old('account_number') }}" required>
-                    @error('account_number') <div class="error">{{ $message }}</div> @enderror
-                </div>
-
-                <div>
-                    <label for="interest_rate">Interest rate (%)</label>
-                    <input id="interest_rate" name="interest_rate" type="number" min="0" max="100" step="0.01" value="{{ old('interest_rate') }}" required>
-                    @error('interest_rate') <div class="error">{{ $message }}</div> @enderror
-                </div>
-
-                <div>
-                    <label for="amount">Amount</label>
-                    <input id="amount" name="amount" type="number" min="0.01" step="0.01" value="{{ old('amount') }}" required>
-                    <p class="hint">Savings: balance. FD: principal. RD: monthly installment.</p>
-                    @error('amount') <div class="error">{{ $message }}</div> @enderror
-                </div>
-
-                <div>
-                    <label for="start_date">Start date</label>
-                    <input id="start_date" name="start_date" type="date" value="{{ old('start_date') }}" required>
-                    @error('start_date') <div class="error">{{ $message }}</div> @enderror
-                </div>
-
-                <div>
-                    <label for="maturity_date">Maturity date</label>
-                    <input id="maturity_date" name="maturity_date" type="date" value="{{ old('maturity_date') }}" required>
-                    @error('maturity_date') <div class="error">{{ $message }}</div> @enderror
-                </div>
-
-                <div class="wide">
-                    <label for="interest_earned">Interest earned at maturity</label>
-                    <input id="interest_earned" name="interest_earned" type="number" min="0" step="0.01" value="{{ old('interest_earned') }}" required>
-                    @error('interest_earned') <div class="error">{{ $message }}</div> @enderror
-                </div>
-
-                <div class="wide">
-                    <button class="button" type="submit"><x-icon name="plus" /> Save</button>
-                </div>
+            @include('savings.partials.form-fields')
+            <p class="hint form-hint">Savings: balance · FD: principal · RD: monthly installment</p>
+            <div class="form-submit">
+                <button class="button" type="submit"><x-icon name="plus" /> Save</button>
             </div>
         </form>
     </section>
 
-    <section>
-        <h2><x-icon name="landmark" /> Your savings</h2>
+    <section class="savings-section">
+        <div class="savings-heading">
+            <h2><x-icon name="landmark" /> Your savings</h2>
+            <p class="savings-totals">
+                <span>Savings balance: <strong>{{ Money::indian($totals['balance']) }}</strong></span>
+                <span>Principal: <strong>{{ Money::indian($totals['principal']) }}</strong></span>
+                <span>Monthly installment: <strong>{{ Money::indian($totals['installment']) }}</strong></span>
+            </p>
+        </div>
 
         @if ($savings->isEmpty())
             <p class="empty"><x-icon name="piggy" class="icon-lg" /> No savings yet.</p>
@@ -80,52 +43,57 @@
             <div class="saving-list">
                 @foreach ($savings as $saving)
                     <article class="card saving">
-                        <div class="saving-top">
-                            <div>
-                                <span class="badge badge-{{ $saving->type->value }}">
-                                    <x-icon name="{{ match ($saving->type) {
-                                        \App\SavingType::SavingsAccount => 'piggy',
-                                        \App\SavingType::FixedDeposit => 'landmark',
-                                        \App\SavingType::RecurringDeposit => 'repeat',
-                                    } }}" />
-                                    {{ $saving->type->label() }}
-                                </span>
-                                <strong class="account-number">{{ $saving->account_number }}</strong>
+                        <div class="saving-head">
+                            <span class="badge badge-{{ $saving->type->value }}">
+                                <x-icon name="{{ match ($saving->type) {
+                                    \App\SavingType::SavingsAccount => 'piggy',
+                                    \App\SavingType::FixedDeposit => 'landmark',
+                                    \App\SavingType::RecurringDeposit => 'repeat',
+                                } }}" />
+                                {{ $saving->type->label() }}
+                            </span>
+
+                            <div class="saving-actions">
+                                <a class="button-quiet" href="{{ route('savings.edit', $saving) }}"><x-icon name="pencil" /> Edit</a>
+                                <form method="POST" action="{{ route('savings.destroy', $saving) }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="button-quiet button-danger" type="submit"><x-icon name="trash" /> Delete</button>
+                                </form>
                             </div>
-                            <form method="POST" action="{{ route('savings.destroy', $saving) }}">
-                                @csrf
-                                @method('DELETE')
-                                <button class="button-text" type="submit"><x-icon name="trash" /> Delete</button>
-                            </form>
                         </div>
 
-                        <dl class="facts">
+                        <div class="saving-identity">
+                            <strong class="account-number">{{ $saving->account_number }}</strong>
+                            <span class="bank-name">{{ $saving->bank_name }}</span>
+                        </div>
+
+                        <div class="saving-strip">
+                            <span>{{ $saving->type->amountLabel() }}</span>
+                            <strong>{{ Money::indian($saving->amount) }}</strong>
+                        </div>
+
+                        <dl class="facts facts-bordered">
                             <div>
                                 <dt><x-icon name="percent" /> Interest rate</dt>
-                                <dd>{{ $saving->interest_rate }}%</dd>
-                            </div>
-                            <div>
-                                <dt><x-icon name="coins" /> {{ $saving->type->amountLabel() }}</dt>
-                                <dd>{{ $saving->amount }}</dd>
+                                <dd>{{ number_format((float) $saving->interest_rate, 2) }}%</dd>
                             </div>
                             <div>
                                 <dt><x-icon name="calendar" /> Start date</dt>
-                                <dd>{{ $saving->start_date->toDateString() }}</dd>
+                                <dd>{{ $saving->start_date->format('d M Y') }}</dd>
                             </div>
                             <div>
                                 <dt><x-icon name="calendar" /> Maturity date</dt>
-                                <dd>{{ $saving->maturity_date->toDateString() }}</dd>
+                                <dd>{{ $saving->maturity_date->format('d M Y') }}</dd>
                             </div>
                             <div>
-                                <dt><x-icon name="percent" /> Interest at maturity</dt>
-                                <dd class="money-in">{{ $saving->interest_earned }}</dd>
+                                <dt><x-icon name="arrow-up" /> Monthly return</dt>
+                                <dd class="money-in">{{ Money::indian($saving->interest_earned) }}</dd>
                             </div>
-                            @if ($receivable = $saving->receivableAtMaturity())
-                                <div>
-                                    <dt><x-icon name="coins" /> Value at maturity</dt>
-                                    <dd>{{ $receivable }}</dd>
-                                </div>
-                            @endif
+                            <div>
+                                <dt><x-icon name="coins" /> Value at maturity</dt>
+                                <dd>{{ Money::indian($saving->receivableAtMaturity()) }}</dd>
+                            </div>
                         </dl>
                     </article>
                 @endforeach

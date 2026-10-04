@@ -1,3 +1,7 @@
+@php
+    use App\Support\Money;
+@endphp
+
 @extends('layouts.app')
 
 @section('title', 'Dashboard')
@@ -9,126 +13,56 @@
 
     <div class="hello">
         <h1>Hello, {{ auth()->user()->name }}</h1>
-        <p class="lede">Income minus expenses.</p>
+        <p class="lede">Your total assets across banks.</p>
     </div>
 
-    <section class="stats stats-dash">
-        <article @class(['card', 'stat', 'stat-balance', 'is-negative' => str_starts_with($summary['balance'], '-')])>
-            <span class="stat-label"><x-icon name="wallet" /> Balance</span>
-            <strong>{{ $summary['balance'] }}</strong>
-        </article>
-        <article class="card stat stat-income">
-            <span class="stat-label"><x-icon name="income" class="money-in" /> Income</span>
-            <strong @class(['money-in' => $summary['income'] !== '0.00'])>{{ $summary['income'] }}</strong>
-        </article>
-        <article class="card stat stat-expense">
-            <span class="stat-label"><x-icon name="expense" class="money-out" /> Expenses</span>
-            <strong @class(['money-out' => $summary['expense'] !== '0.00'])>{{ $summary['expense'] }}</strong>
-        </article>
-    </section>
-
-    <section class="card chart-card">
-        <h2><x-icon name="pie" /> Income and expenses</h2>
-        <div class="chart-layout">
-            <div
-                @class(['pie', 'pie-empty' => $chart['empty']])
-                @unless ($chart['empty']) style="--split: {{ $chart['income'] }}%" @endunless
-                role="img"
-                aria-label="Income {{ $summary['income'] }}, expenses {{ $summary['expense'] }}"
-            ></div>
-            <ul class="legend">
-                <li>
-                    <span class="swatch swatch-income"></span>
-                    <span>Income</span>
-                    <strong class="money-in">{{ $summary['income'] }}</strong>
-                    <span class="muted">{{ $chart['income'] }}%</span>
-                </li>
-                <li>
-                    <span class="swatch swatch-expense"></span>
-                    <span>Expenses</span>
-                    <strong class="money-out">{{ $summary['expense'] }}</strong>
-                    <span class="muted">{{ $chart['expense'] }}%</span>
-                </li>
-            </ul>
+    <section class="card assets-hero">
+        <div class="assets-summary">
+            <span class="stat-label"><x-icon name="wallet" /> Total assets</span>
+            <strong class="assets-total">{{ Money::indian($totalAssets) }}</strong>
+            <p class="muted">{{ $banks->count() }} {{ Str::plural('bank', $banks->count()) }} · {{ $banks->sum('count') }} {{ Str::plural('account', $banks->sum('count')) }}</p>
         </div>
-        @if ($chart['empty'])
-            <p class="hint">Add a transaction to see this chart.</p>
-        @endif
-    </section>
 
-    <div class="board">
-        <section class="card panel">
-            <div class="panel-head">
-                <h2><x-icon name="receipt" /> Transactions</h2>
-                <span class="muted">{{ $transactions->count() }}</span>
-            </div>
+        <div class="assets-chart">
+            <div
+                @class(['pie', 'pie-assets', 'pie-empty' => $banks->isEmpty()])
+                @unless ($banks->isEmpty()) style="background: radial-gradient(circle at center, #fff 0 52%, transparent 53%), {{ $pieStyle }}" @endunless
+                role="img"
+                aria-label="Bank wise asset share"
+            ></div>
 
-            @if ($transactions->isEmpty())
-                <p class="empty"><x-icon name="receipt" class="icon-lg" /> No transactions yet.</p>
+            @if ($banks->isEmpty())
+                <p class="hint">Add savings to see bank-wise assets.</p>
             @else
-                <ul class="ledger">
-                    @foreach ($transactions as $transaction)
+                <ul class="legend">
+                    @foreach ($banks as $bank)
                         <li>
-                            <div class="txn-main">
-                                <strong>{{ $transaction->description }}</strong>
-                                <div class="muted">{{ $transaction->occurred_on->toDateString() }}</div>
-                                <span class="badge badge-{{ $transaction->type->value }}"><x-icon name="{{ $transaction->type->value }}" /> {{ $transaction->type->value }}</span>
-                            </div>
-                            <strong @class([
-                                'money',
-                                'money-in' => $transaction->type === \App\TransactionType::Income,
-                                'money-out' => $transaction->type === \App\TransactionType::Expense,
-                            ])>{{ $transaction->type === \App\TransactionType::Income ? '+' : '−' }}{{ $transaction->amount }}</strong>
-                            <form method="POST" action="{{ route('transactions.destroy', $transaction) }}">
-                                @csrf
-                                @method('DELETE')
-                                <button class="button-text" type="submit"><x-icon name="trash" /> Delete</button>
-                            </form>
+                            <span class="swatch" style="background: {{ $bank['color'] }}"></span>
+                            <span>{{ $bank['name'] }}</span>
+                            <strong>{{ $bank['percent'] }}%</strong>
                         </li>
                     @endforeach
                 </ul>
             @endif
-        </section>
+        </div>
+    </section>
 
-        <section class="card panel panel-form">
-            <h2><x-icon name="plus" /> Add a transaction</h2>
+    <section class="bank-section">
+        <h2><x-icon name="landmark" /> Banks</h2>
 
-            <form method="POST" action="{{ route('transactions.store') }}">
-                @csrf
-
-                <div class="fields">
-                    <div>
-                        <label for="type">Type</label>
-                        <select id="type" name="type" required>
-                            <option value="income" @selected(old('type') === 'income')>Income</option>
-                            <option value="expense" @selected(old('type', 'expense') === 'expense')>Expense</option>
-                        </select>
-                        @error('type') <div class="error">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div>
-                        <label for="amount">Amount</label>
-                        <input id="amount" name="amount" type="number" min="0.01" step="0.01" value="{{ old('amount') }}" required>
-                        @error('amount') <div class="error">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="wide">
-                        <label for="description">Description</label>
-                        <input id="description" name="description" value="{{ old('description') }}" required>
-                        @error('description') <div class="error">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div>
-                        <label for="occurred_on">Date</label>
-                        <input id="occurred_on" name="occurred_on" type="date" value="{{ old('occurred_on', now()->toDateString()) }}" required>
-                        @error('occurred_on') <div class="error">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="wide">
-                        <button class="button" type="submit"><x-icon name="plus" /> Save</button>
-                    </div>
-                </div>
-            </form>
-        </section>
-    </div>
+        @if ($banks->isEmpty())
+            <p class="empty"><x-icon name="landmark" class="icon-lg" /> No bank assets yet. <a href="{{ route('savings.index') }}">Add a saving</a></p>
+        @else
+            <div class="bank-grid">
+                @foreach ($banks as $bank)
+                    <a class="card bank-card" href="{{ route('banks.show', ['bank' => $bank['slug']]) }}">
+                        <span class="bank-card-swatch" style="background: {{ $bank['color'] }}"></span>
+                        <strong class="bank-card-name">{{ $bank['name'] }}</strong>
+                        <span class="bank-card-amount">{{ Money::indian($bank['total']) }}</span>
+                        <span class="muted">{{ $bank['count'] }} {{ Str::plural('account', $bank['count']) }} · {{ $bank['percent'] }}%</span>
+                    </a>
+                @endforeach
+            </div>
+        @endif
+    </section>
 @endsection

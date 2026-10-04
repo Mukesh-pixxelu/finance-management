@@ -42,7 +42,8 @@ class SavingControllerTest extends TestCase
 
         $this->assertSame($user->id, $saving->user_id);
         $this->assertSame(SavingType::FixedDeposit, $saving->type);
-        $this->assertSame('FD100200300', $saving->account_number);
+        $this->assertSame('100200300', $saving->account_number);
+        $this->assertSame('HDFC Bank', $saving->bank_name);
         $this->assertSame('7.10', $saving->interest_rate);
         $this->assertSame('100000.00', $saving->amount);
         $this->assertSame('2026-01-01', $saving->start_date->toDateString());
@@ -59,27 +60,67 @@ class SavingControllerTest extends TestCase
         $user = User::factory()->create();
 
         Saving::factory()->for($user)->fixedDeposit()->create([
-            'account_number' => 'FD100200300',
+            'account_number' => '100200300',
+            'bank_name' => 'HDFC Bank',
             'maturity_date' => '2027-06-01',
             'interest_earned' => '7100.00',
         ]);
         Saving::factory()->for($user)->recurringDeposit()->create([
-            'account_number' => 'RD400500600',
+            'account_number' => '400500600',
+            'bank_name' => 'ICICI Bank',
             'maturity_date' => '2027-01-01',
             'interest_earned' => '860.00',
         ]);
         Saving::factory()->create([
-            'account_number' => 'SECRET999',
+            'account_number' => '999888777',
         ]);
 
         $this->actingAs($user)
             ->get(route('savings.index'))
-            ->assertSeeInOrder(['RD400500600', 'FD100200300'])
-            ->assertSee('7100.00')
-            ->assertSee('107100.00')
+            ->assertSeeInOrder(['400500600', '100200300'])
+            ->assertDontSee('999888777')
+            ->assertSee('HDFC Bank')
+            ->assertSee('ICICI Bank')
+            ->assertSee('7,100.00')
+            ->assertSee('1,07,100.00')
             ->assertSee('860.00')
-            ->assertSee('Monthly installment')
-            ->assertDontSee('SECRET999');
+            ->assertSee('Principal')
+            ->assertSee('Monthly return')
+            ->assertSee('Savings balance:')
+            ->assertSee('Edit');
+    }
+
+    public function test_owner_can_update_a_saving(): void
+    {
+        $user = User::factory()->create();
+        $saving = Saving::factory()->for($user)->create([
+            'account_number' => '100200300',
+            'bank_name' => 'Old Bank',
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('savings.update', $saving), $this->payload([
+                'account_number' => '100200300',
+                'bank_name' => 'India Post Payments Bank',
+                'amount' => '125000.00',
+                'maturity_date' => '2027-01-01',
+                'interest_earned' => '7100.00',
+            ]))
+            ->assertRedirectToRoute('savings.index');
+
+        $saving->refresh();
+
+        $this->assertSame('India Post Payments Bank', $saving->bank_name);
+        $this->assertSame('125000.00', $saving->amount);
+    }
+
+    public function test_another_user_cannot_edit_a_saving(): void
+    {
+        $saving = Saving::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('savings.edit', $saving))
+            ->assertNotFound();
     }
 
     public function test_savings_page_escapes_the_account_number(): void
@@ -107,11 +148,10 @@ class SavingControllerTest extends TestCase
             ->assertInvalid([
                 'type' => 'The type field is required.',
                 'account_number' => 'The account number field is required.',
+                'bank_name' => 'The bank name field is required.',
                 'interest_rate' => 'The interest rate field is required.',
                 'amount' => 'The amount field is required.',
                 'start_date' => 'The start date field is required.',
-                'maturity_date' => 'The maturity date field is required.',
-                'interest_earned' => 'The interest earned field is required.',
             ]);
 
         $this->assertDatabaseCount('savings', 0);
@@ -136,7 +176,7 @@ class SavingControllerTest extends TestCase
     {
         $user = User::factory()->create();
         Saving::factory()->for($user)->create([
-            'account_number' => 'FD100200300',
+            'account_number' => '100200300',
         ]);
 
         $this->actingAs($user)
@@ -152,7 +192,7 @@ class SavingControllerTest extends TestCase
     public function test_another_user_may_use_the_same_account_number(): void
     {
         Saving::factory()->create([
-            'account_number' => 'FD100200300',
+            'account_number' => '100200300',
         ]);
 
         $this->actingAs(User::factory()->create())
@@ -202,20 +242,20 @@ class SavingControllerTest extends TestCase
     {
         return [
             'type' => [['type' => 'loan'], 'type', 'The selected type is invalid.'],
-            'maturity before start' => [
-                ['maturity_date' => '2025-01-01'],
-                'maturity_date',
-                'The maturity date field must be a date after or equal to start date.',
-            ],
-            'interest rate above 100' => [
-                ['interest_rate' => '100.01'],
+            'interest rate below 1' => [
+                ['interest_rate' => '0.99'],
                 'interest_rate',
-                'The interest rate field must not be greater than 100.',
+                'The interest rate field must be at least 1.',
             ],
-            'negative interest' => [
-                ['interest_earned' => '-1'],
-                'interest_earned',
-                'The interest earned field must be at least 0.',
+            'interest rate above 20' => [
+                ['interest_rate' => '20.01'],
+                'interest_rate',
+                'The interest rate field must not be greater than 20.',
+            ],
+            'non numeric account number' => [
+                ['account_number' => 'FD100200300'],
+                'account_number',
+                'The account number field format is invalid.',
             ],
         ];
     }
@@ -228,12 +268,11 @@ class SavingControllerTest extends TestCase
     {
         return array_merge([
             'type' => 'fd',
-            'account_number' => 'FD100200300',
+            'account_number' => '100200300',
+            'bank_name' => 'HDFC Bank',
             'interest_rate' => '7.10',
             'amount' => '100000.00',
             'start_date' => '2026-01-01',
-            'maturity_date' => '2027-01-01',
-            'interest_earned' => '7100.00',
         ], $overrides);
     }
 }
