@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('savings', 'bank_name')) {
+            return;
+        }
+
         Schema::table('savings', function (Blueprint $table) {
             $table->string('bank_name')->default('')->after('account_number');
         });
@@ -21,6 +25,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (! Schema::hasColumn('savings', 'bank_name')) {
+            return;
+        }
+
         Schema::table('savings', function (Blueprint $table) {
             $table->dropColumn('bank_name');
         });

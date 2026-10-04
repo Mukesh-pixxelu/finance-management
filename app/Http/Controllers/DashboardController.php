@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Bank;
+use App\Models\Insurance;
+use App\Models\Pension;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -12,7 +14,8 @@ class DashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        $banks = $this->bankAssets($request->user());
+        $user = $request->user();
+        $banks = $this->bankAssets($user);
         $totalAssets = $banks->reduce(
             fn (string $carry, array $bank) => bcadd($carry, $bank['total'], 2),
             '0.00',
@@ -22,6 +25,8 @@ class DashboardController extends Controller
             'totalAssets' => $totalAssets,
             'banks' => $banks,
             'pieStyle' => $this->pieStyle($banks),
+            'insurance' => $this->insuranceSummary($user),
+            'pension' => $this->pensionSummary($user),
         ]);
     }
 
@@ -61,6 +66,63 @@ class DashboardController extends Controller
                 'color' => $colors[$index % count($colors)],
             ];
         });
+    }
+
+    /**
+     * @return array{count: int, cover: string, yearly_premium: string}
+     */
+    private function insuranceSummary(User $user): array
+    {
+        $insurances = $user->insurances()->get();
+
+        $cover = $insurances->reduce(
+            fn (string $carry, Insurance $insurance) => bcadd($carry, (string) ($insurance->sum_assured ?? '0'), 2),
+            '0.00',
+        );
+
+        $yearlyPremium = $insurances->reduce(
+            fn (string $carry, Insurance $insurance) => bcadd($carry, $insurance->yearlyPremium(), 2),
+            '0.00',
+        );
+
+        return [
+            'count' => $insurances->count(),
+            'cover' => $cover,
+            'yearly_premium' => $yearlyPremium,
+        ];
+    }
+
+    /**
+     * @return array{count: int, contributions: int, contributed: string, yearly_contribution: string, expected_pension: string}
+     */
+    private function pensionSummary(User $user): array
+    {
+        $pensions = $user->pensions()->get();
+
+        $contributions = $pensions->sum(fn (Pension $pension) => $pension->contributionsSoFar());
+
+        $contributed = $pensions->reduce(
+            fn (string $carry, Pension $pension) => bcadd($carry, $pension->totalContributedSoFar(), 2),
+            '0.00',
+        );
+
+        $yearlyContribution = $pensions->reduce(
+            fn (string $carry, Pension $pension) => bcadd($carry, $pension->yearlyContribution(), 2),
+            '0.00',
+        );
+
+        $expectedPension = $pensions->reduce(
+            fn (string $carry, Pension $pension) => bcadd($carry, (string) ($pension->expected_pension ?? '0'), 2),
+            '0.00',
+        );
+
+        return [
+            'count' => $pensions->count(),
+            'contributions' => (int) $contributions,
+            'contributed' => $contributed,
+            'yearly_contribution' => $yearlyContribution,
+            'expected_pension' => $expectedPension,
+        ];
     }
 
     /**

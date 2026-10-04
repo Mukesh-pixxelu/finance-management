@@ -29,6 +29,7 @@ final class Bank
             'Indian Overseas Bank',
             'Yes Bank',
             'India Post Payments Bank',
+            'Indian Post Office',
         ];
     }
 

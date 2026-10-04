@@ -36,6 +36,7 @@ class Saving extends Model
             'start_date' => 'date',
             'maturity_date' => 'date',
             'interest_earned' => 'decimal:2',
+            'maturity_notified_at' => 'datetime',
         ];
     }
 
@@ -46,6 +47,6 @@ class Saving extends Model
 
     public function receivableAtMaturity(): string
     {
-        return bcadd($this->amount, $this->interest_earned, 2);
+        return bcadd((string) ($this->amount ?? '0'), (string) ($this->interest_earned ?? '0'), 2);
     }
 }

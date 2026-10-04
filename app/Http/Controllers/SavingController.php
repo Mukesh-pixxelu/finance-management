@@ -81,7 +81,7 @@ class SavingController extends Controller
     private function totalFor($savings, SavingType $type): string
     {
         $total = $savings
-            ->where('type', $type)
+            ->filter(fn (Saving $saving) => $saving->type === $type)
             ->reduce(fn (string $carry, Saving $saving) => bcadd($carry, $saving->amount, 2), '0.00');
 
         return $total;

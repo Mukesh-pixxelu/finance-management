@@ -55,6 +55,10 @@
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z" />
             @break
+        @case('lock')
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            @break
         @case('plus')
             <path d="M12 5v14" />
             <path d="M5 12h14" />
@@ -83,6 +87,10 @@
         @case('user')
             <circle cx="12" cy="8" r="3.25" />
             <path d="M5 19.5a7 7 0 0 1 14 0" />
+            @break
+        @case('shield')
+            <path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z" />
+            <path d="m9.5 12 1.8 1.8 3.7-3.8" />
             @break
         @default
     @endswitch

@@ -1,7 +1,3 @@
-@php
-    use App\Support\Money;
-@endphp
-
 @extends('layouts.app')
 
 @section('title', 'Transactions')
@@ -19,15 +15,15 @@
     <section class="stats stats-dash">
         <article @class(['card', 'stat', 'stat-balance', 'is-negative' => str_starts_with($summary['balance'], '-')])>
             <span class="stat-label"><x-icon name="wallet" /> Balance</span>
-            <strong>{{ Money::indian($summary['balance']) }}</strong>
+            <strong>{{ \App\Support\Money::indian($summary['balance']) }}</strong>
         </article>
         <article class="card stat stat-income">
             <span class="stat-label"><x-icon name="income" class="money-in" /> Income</span>
-            <strong @class(['money-in' => $summary['income'] !== '0.00'])>{{ Money::indian($summary['income']) }}</strong>
+            <strong @class(['money-in' => $summary['income'] !== '0.00'])>{{ \App\Support\Money::indian($summary['income']) }}</strong>
         </article>
         <article class="card stat stat-expense">
             <span class="stat-label"><x-icon name="expense" class="money-out" /> Expenses</span>
-            <strong @class(['money-out' => $summary['expense'] !== '0.00'])>{{ Money::indian($summary['expense']) }}</strong>
+            <strong @class(['money-out' => $summary['expense'] !== '0.00'])>{{ \App\Support\Money::indian($summary['expense']) }}</strong>
         </article>
     </section>
 
@@ -53,7 +49,7 @@
                                 'money',
                                 'money-in' => $transaction->type === \App\TransactionType::Income,
                                 'money-out' => $transaction->type === \App\TransactionType::Expense,
-                            ])>{{ $transaction->type === \App\TransactionType::Income ? '+' : '−' }}{{ Money::indian($transaction->amount) }}</strong>
+                            ])>{{ $transaction->type === \App\TransactionType::Income ? '+' : '−' }}{{ \App\Support\Money::indian($transaction->amount) }}</strong>
                             <form method="POST" action="{{ route('transactions.destroy', $transaction) }}">
                                 @csrf
                                 @method('DELETE')

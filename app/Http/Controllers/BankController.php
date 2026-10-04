@@ -14,7 +14,9 @@ class BankController extends Controller
         $bankName = Bank::nameFromSlug($bank)
             ?? $user->savings()
                 ->pluck('bank_name')
+                ->filter(fn ($name) => filled($name))
                 ->unique()
+                ->map(fn ($name) => (string) $name)
                 ->first(fn (string $name) => Bank::slug($name) === $bank);
 
         abort_if($bankName === null, 404);
@@ -28,7 +30,7 @@ class BankController extends Controller
         abort_if($savings->isEmpty(), 404);
 
         $total = $savings->reduce(
-            fn (string $carry, $saving) => bcadd($carry, $saving->amount, 2),
+            fn (string $carry, $saving) => bcadd($carry, (string) ($saving->amount ?? '0'), 2),
             '0.00',
         );
 

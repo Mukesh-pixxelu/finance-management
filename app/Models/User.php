@@ -42,6 +42,16 @@ class User extends Authenticatable
         return $this->hasMany(Saving::class);
     }
 
+    public function insurances(): HasMany
+    {
+        return $this->hasMany(Insurance::class);
+    }
+
+    public function pensions(): HasMany
+    {
+        return $this->hasMany(Pension::class);
+    }
+
     /**
      * @return array{income: string, expense: string, balance: string}
      */

@@ -45,4 +45,23 @@ class BankControllerTest extends TestCase
             ->get(route('banks.show', 'hdfc-bank'))
             ->assertNotFound();
     }
+
+    public function test_custom_bank_name_like_indian_post_office_opens(): void
+    {
+        $user = User::factory()->create();
+
+        Saving::factory()->for($user)->create([
+            'bank_name' => 'Indian Post Office',
+            'account_number' => 'PO123456',
+            'amount' => '25000.00',
+            'interest_earned' => '0.00',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('banks.show', 'indian-post-office'))
+            ->assertOk()
+            ->assertSee('Indian Post Office')
+            ->assertSee('PO123456')
+            ->assertSee('25,000.00');
+    }
 }

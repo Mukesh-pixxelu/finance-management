@@ -25,4 +25,13 @@ enum SavingType: string
             self::RecurringDeposit => 'Monthly installment',
         };
     }
+
+    public function icon(): string
+    {
+        return match ($this) {
+            self::SavingsAccount => 'piggy',
+            self::FixedDeposit => 'landmark',
+            self::RecurringDeposit => 'repeat',
+        };
+    }
 }

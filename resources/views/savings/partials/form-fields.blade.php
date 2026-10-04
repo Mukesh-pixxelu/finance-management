@@ -9,9 +9,11 @@
     <div>
         <label for="type">Type</label>
         <select id="type" name="type" required>
-            <option value="savings_account" @selected(old('type', $saving?->type?->value ?? 'savings_account') === 'savings_account')>Savings account</option>
-            <option value="fd" @selected(old('type', $saving?->type?->value) === 'fd')>FD</option>
-            <option value="rd" @selected(old('type', $saving?->type?->value) === 'rd')>RD</option>
+            @foreach (\App\SavingType::cases() as $type)
+                <option value="{{ $type->value }}" @selected(old('type', $saving?->type?->value ?? 'savings_account') === $type->value)>
+                    {{ $type->label() }}
+                </option>
+            @endforeach
         </select>
         @error('type') <div class="error">{{ $message }}</div> @enderror
     </div>

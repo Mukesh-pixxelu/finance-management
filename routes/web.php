@@ -7,15 +7,22 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\BankController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InsuranceController;
+use App\Http\Controllers\PensionController;
 use App\Http\Controllers\SavingController;
 use App\Http\Controllers\TransactionController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/login', '/');
+Route::get('/', function () {
+    return Auth::check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+});
 
 Route::middleware('guest')->group(function () {
-    Route::get('/', [LoginController::class, 'create'])->name('login');
-    Route::post('/', [LoginController::class, 'store'])->name('login.store');
+    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    Route::post('/login', [LoginController::class, 'store'])->name('login.store');
 
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
     Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
@@ -48,6 +55,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/savings/{saving}/edit', [SavingController::class, 'edit'])->name('savings.edit');
     Route::put('/savings/{saving}', [SavingController::class, 'update'])->name('savings.update');
     Route::delete('/savings/{saving}', [SavingController::class, 'destroy'])->name('savings.destroy');
+
+    Route::get('/insurances', [InsuranceController::class, 'index'])->name('insurances.index');
+    Route::post('/insurances', [InsuranceController::class, 'store'])->name('insurances.store');
+    Route::get('/insurances/{insurance}/edit', [InsuranceController::class, 'edit'])->name('insurances.edit');
+    Route::put('/insurances/{insurance}', [InsuranceController::class, 'update'])->name('insurances.update');
+    Route::delete('/insurances/{insurance}', [InsuranceController::class, 'destroy'])->name('insurances.destroy');
+
+    Route::get('/pensions', [PensionController::class, 'index'])->name('pensions.index');
+    Route::post('/pensions', [PensionController::class, 'store'])->name('pensions.store');
+    Route::get('/pensions/{pension}/edit', [PensionController::class, 'edit'])->name('pensions.edit');
+    Route::put('/pensions/{pension}', [PensionController::class, 'update'])->name('pensions.update');
+    Route::delete('/pensions/{pension}', [PensionController::class, 'destroy'])->name('pensions.destroy');
 
     Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
     Route::put('/account', [AccountController::class, 'update'])->name('account.update');

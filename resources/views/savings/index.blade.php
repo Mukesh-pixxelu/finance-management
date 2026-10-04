@@ -1,7 +1,3 @@
-@php
-    use App\Support\Money;
-@endphp
-
 @extends('layouts.app')
 
 @section('title', 'Savings')
@@ -31,9 +27,9 @@
         <div class="savings-heading">
             <h2><x-icon name="landmark" /> Your savings</h2>
             <p class="savings-totals">
-                <span>Savings balance: <strong>{{ Money::indian($totals['balance']) }}</strong></span>
-                <span>Principal: <strong>{{ Money::indian($totals['principal']) }}</strong></span>
-                <span>Monthly installment: <strong>{{ Money::indian($totals['installment']) }}</strong></span>
+                <span>Savings balance: <strong>{{ \App\Support\Money::indian($totals['balance']) }}</strong></span>
+                <span>Principal: <strong>{{ \App\Support\Money::indian($totals['principal']) }}</strong></span>
+                <span>Monthly installment: <strong>{{ \App\Support\Money::indian($totals['installment']) }}</strong></span>
             </p>
         </div>
 
@@ -45,11 +41,7 @@
                     <article class="card saving">
                         <div class="saving-head">
                             <span class="badge badge-{{ $saving->type->value }}">
-                                <x-icon name="{{ match ($saving->type) {
-                                    \App\SavingType::SavingsAccount => 'piggy',
-                                    \App\SavingType::FixedDeposit => 'landmark',
-                                    \App\SavingType::RecurringDeposit => 'repeat',
-                                } }}" />
+                                <x-icon name="{{ $saving->type->icon() }}" />
                                 {{ $saving->type->label() }}
                             </span>
 
@@ -65,12 +57,12 @@
 
                         <div class="saving-identity">
                             <strong class="account-number">{{ $saving->account_number }}</strong>
-                            <span class="bank-name">{{ $saving->bank_name }}</span>
+                            <span class="bank-name">{{ $saving->bank_name !== '' ? $saving->bank_name : 'Bank not set' }}</span>
                         </div>
 
                         <div class="saving-strip">
                             <span>{{ $saving->type->amountLabel() }}</span>
-                            <strong>{{ Money::indian($saving->amount) }}</strong>
+                            <strong>{{ \App\Support\Money::indian($saving->amount) }}</strong>
                         </div>
 
                         <dl class="facts facts-bordered">
@@ -80,19 +72,19 @@
                             </div>
                             <div>
                                 <dt><x-icon name="calendar" /> Start date</dt>
-                                <dd>{{ $saving->start_date->format('d M Y') }}</dd>
+                                <dd>{{ $saving->start_date?->format('d M Y') ?? '—' }}</dd>
                             </div>
                             <div>
                                 <dt><x-icon name="calendar" /> Maturity date</dt>
-                                <dd>{{ $saving->maturity_date->format('d M Y') }}</dd>
+                                <dd>{{ $saving->maturity_date?->format('d M Y') ?? '—' }}</dd>
                             </div>
                             <div>
                                 <dt><x-icon name="arrow-up" /> Monthly return</dt>
-                                <dd class="money-in">{{ Money::indian($saving->interest_earned) }}</dd>
+                                <dd class="money-in">{{ \App\Support\Money::indian($saving->interest_earned) }}</dd>
                             </div>
                             <div>
                                 <dt><x-icon name="coins" /> Value at maturity</dt>
-                                <dd>{{ Money::indian($saving->receivableAtMaturity()) }}</dd>
+                                <dd>{{ \App\Support\Money::indian($saving->receivableAtMaturity()) }}</dd>
                             </div>
                         </dl>
                     </article>
