@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Bank;
+use App\Models\Saving;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -30,7 +31,7 @@ class BankController extends Controller
         abort_if($savings->isEmpty(), 404);
 
         $total = $savings->reduce(
-            fn (string $carry, $saving) => bcadd($carry, (string) ($saving->amount ?? '0'), 2),
+            fn (string $carry, Saving $saving) => bcadd($carry, $saving->currentValue(), 2),
             '0.00',
         );
 

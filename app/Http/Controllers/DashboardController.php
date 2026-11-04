@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Bank;
 use App\Models\Insurance;
 use App\Models\Pension;
+use App\Models\Saving;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -38,11 +39,23 @@ class DashboardController extends Controller
         $colors = Bank::chartColors();
 
         $grouped = $user->savings()
-            ->selectRaw('bank_name, sum(amount) as total, count(*) as accounts')
-            ->groupBy('bank_name')
-            ->orderByDesc('total')
             ->get()
-            ->filter(fn (object $row) => filled($row->bank_name));
+            ->filter(fn (Saving $saving) => filled($saving->bank_name))
+            ->groupBy('bank_name')
+            ->map(function (Collection $accounts, string $name): object {
+                $total = $accounts->reduce(
+                    fn (string $carry, Saving $saving) => bcadd($carry, $saving->currentValue(), 2),
+                    '0.00',
+                );
+
+                return (object) [
+                    'bank_name' => $name,
+                    'total' => $total,
+                    'accounts' => $accounts->count(),
+                ];
+            })
+            ->sort(fn (object $left, object $right): int => bccomp($right->total, $left->total, 2))
+            ->values();
 
         $grandTotal = $grouped->reduce(
             fn (string $carry, object $row) => bcadd($carry, (string) $row->total, 2),

@@ -38,11 +38,22 @@
                 </div>
 
                 <div class="saving-strip">
-                    <span>{{ $saving->type->amountLabel() }}</span>
-                    <strong>{{ \App\Support\Money::indian($saving->amount) }}</strong>
+                    @if ($saving->type === \App\SavingType::RecurringDeposit)
+                        <span>Deposited</span>
+                        <strong>{{ \App\Support\Money::indian($saving->depositedAmount()) }}</strong>
+                    @else
+                        <span>{{ $saving->type->amountLabel() }}</span>
+                        <strong>{{ \App\Support\Money::indian($saving->amount) }}</strong>
+                    @endif
                 </div>
 
                 <dl class="facts facts-bordered">
+                    @if ($saving->type === \App\SavingType::RecurringDeposit)
+                        <div>
+                            <dt><x-icon name="repeat" /> Monthly installment</dt>
+                            <dd>{{ \App\Support\Money::indian($saving->amount) }}</dd>
+                        </div>
+                    @endif
                     <div>
                         <dt><x-icon name="percent" /> Interest rate</dt>
                         <dd>{{ number_format((float) $saving->interest_rate, 2) }}%</dd>
@@ -56,7 +67,11 @@
                         <dd>{{ $saving->maturity_date?->format('d M Y') ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt><x-icon name="arrow-up" /> Monthly return</dt>
+                        @if ($saving->type === \App\SavingType::RecurringDeposit)
+                            <dt><x-icon name="arrow-up" /> Interest at maturity</dt>
+                        @else
+                            <dt><x-icon name="arrow-up" /> Monthly return</dt>
+                        @endif
                         <dd class="money-in">{{ \App\Support\Money::indian($saving->interest_earned) }}</dd>
                     </div>
                     <div>

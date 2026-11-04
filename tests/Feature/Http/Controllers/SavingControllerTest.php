@@ -202,6 +202,37 @@ class SavingControllerTest extends TestCase
         $this->assertDatabaseCount('savings', 2);
     }
 
+    public function test_recurring_deposit_grows_by_the_installment_and_hides_monthly_return(): void
+    {
+        $this->travelTo('2026-11-04');
+
+        $user = User::factory()->create();
+        $saving = Saving::factory()->for($user)->recurringDeposit()->create([
+            'account_number' => '020250888680',
+            'bank_name' => 'Indian Post Office',
+            'amount' => '6000.00',
+            'interest_earned' => '420.00',
+            'start_date' => '2026-07-10',
+            'maturity_date' => '2029-07-09',
+        ]);
+
+        $this->assertSame(4, $saving->installmentsPaid());
+        $this->assertSame('24000.00', $saving->depositedAmount());
+        $this->assertSame('24000.00', $saving->currentValue());
+        $this->assertSame(36, $saving->installmentCount());
+        $this->assertSame('216420.00', $saving->receivableAtMaturity());
+
+        $this->actingAs($user)
+            ->get(route('savings.index'))
+            ->assertSee('Deposited')
+            ->assertSee('24,000.00')
+            ->assertSee('Monthly installment')
+            ->assertSee('6,000.00')
+            ->assertSee('Interest at maturity')
+            ->assertSee('2,16,420.00')
+            ->assertDontSee('Monthly return');
+    }
+
     public function test_guest_is_redirected_to_login_when_deleting_a_saving(): void
     {
         $saving = Saving::factory()->create();
